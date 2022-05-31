@@ -16,80 +16,76 @@ import plotly.graph_objects as go
 import plotly.express as px
 import pickle
 
-########### open the pickle file ######
 
-filename = open('model_outputs/scaler.pkl', 'rb')
-scaler = pickle.load(filename)
-filename.close()
+# Load pkl files
+with open('model_outputs/scaler_updated.pkl', 'rb') as f:
+    scaler = pickle.load(f)
 
-filename = open('model_outputs/rf_model.pkl', 'rb')
-rf_model = pickle.load(filename)
-filename.close()
+with open('model_outputs/rf_model_updated.pkl', 'rb') as f:
+    rf_model = pickle.load(f)
 
-filename = open('model_outputs/xgb_model.pkl', 'rb')
-xgb_model = pickle.load(filename)
-filename.close()
+with open('model_outputs/xgb_model_updated.pkl', 'rb') as f:
+    xgb_model = pickle.load(f)
 
-
-
-########### define variables
-tabtitle='digits classifier'
-sourceurl = 'https://scikit-learn.org/stable/auto_examples/classification/plot_digits_classification.html'
-githublink = 'https://github.com/plotly-dash-apps/506-digit-classifier-xgboost'
+# Global variables
+tabtitle ='Digits classifier'
+sourceurl = 'https://scikit-learn.org/stable/auto_examples/classification/' \
+            'plot_digits_classification.html'
+githublink = 'https://github.com/cahn1/506-digit-classifier-xgboost/tree' \
+             '/update1'
 canvas_size = 200
 
-########### BLANK FIGURE
-templates=['plotly', 'ggplot2', 'seaborn', 'simple_white', 'plotly_white', 'plotly_dark',
-            'presentation', 'xgridoff', 'ygridoff', 'gridon', 'none']
-data=[]
+# Figure templates
+templates=['plotly', 'ggplot2', 'seaborn', 'simple_white', 'plotly_white',
+           'plotly_dark', 'presentation', 'xgridoff', 'ygridoff', 'gridon', 'none']
+data = []
 layout= go.Layout(
-        xaxis =  {'showgrid': False,
-                    'visible': False,
-                    'showticklabels':False,
-                    'showline':False,
-                    'zeroline': False,
-                    'mirror':True,
-                    'ticks':None,
-                    },
-        yaxis =  {'showgrid': False,
-                    'visible': False,
-                    'showticklabels':False,
-                    'showline':False,
-                    'zeroline': False,
-                    'mirror':True,
-                    'ticks':None,
-                    },
-        newshape={'line_color':None,
-                    'fillcolor':None,
-                    # 'opacity':0.8,
-                    # 'line':{'width':30}
-                    },
-        template=templates[6],
-        font_size=12,
-        dragmode='drawopenpath',
-        width=580,
-        height=630
-        )
+    xaxis =  {'showgrid': False,
+                'visible': False,
+                'showticklabels':False,
+                'showline':False,
+                'zeroline': False,
+                'mirror':True,
+                'ticks':None,
+                },
+    yaxis =  {'showgrid': False,
+                'visible': False,
+                'showticklabels':False,
+                'showline':False,
+                'zeroline': False,
+                'mirror':True,
+                'ticks':None,
+                },
+    newshape={'line_color':None,
+                'fillcolor':None,
+                # 'opacity':0.8,
+                # 'line':{'width':30}
+                },
+    template=templates[6],
+    font_size=12,
+    dragmode='drawopenpath',
+    width=580,
+    height=630
+)
 blank_fig = go.Figure(data, layout)
 
 
-
-############ FUNCTIONS
+# Helper function
 def squash_matrix(df, cols, rows):
-    x=0
-    col_cut = df.shape[1]//cols
-    row_cut = df.shape[0]//rows
+    x = 0
+    col_cut = df.shape[1] //cols
+    row_cut = df.shape[0] //rows
     df2 = pd.DataFrame()
     for segment in range(cols):
-        df2[segment]=df.iloc[:,x:x+col_cut].mean(axis=1).astype(int)
-        x+=col_cut
-    df3=df2.groupby(np.arange(len(df))//row_cut).mean().astype(int)
-    if len(df3)==rows:
+        df2[segment] = df.iloc[:, x:x+col_cut].mean(axis=1).astype(int)
+        x += col_cut
+    df3 = df2.groupby(np.arange(len(df))//row_cut).mean().astype(int)
+    if len(df3) == rows:
         return df3
-    else:
-        return df3.iloc[:rows]
+    return df3.iloc[:rows]
 
 
+# Helper function
 def array_to_data_url(img, dtype=None):
     """
     Converts numpy array to data string, using Pillow.
@@ -105,11 +101,10 @@ def array_to_data_url(img, dtype=None):
     if dtype is not None:
         img = img.astype(dtype)
     df = pd.DataFrame(img)
-    df2=squash_matrix(df, cols=28, rows=28) # reduce the number of columns to 28
-    return df2
+    # reduce the number of columns to 28
+    return squash_matrix(df, cols=28, rows=28)
 
-
-########### Initiate the app
+# app server config
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 server = app.server
@@ -117,7 +112,7 @@ app.config['suppress_callback_exceptions'] = True
 app.title=tabtitle
 
 
-
+# Set up Dash layout
 app.layout = html.Div(children=[
         html.H1('Handwritten Digit Classifier'),
         html.Div([
@@ -165,26 +160,36 @@ app.layout = html.Div(children=[
     ], className="twelve columns")
 
 
-######### CALLBACK
+# callback
 @app.callback(
-                Output('output-figure', 'figure'),
-                Output('rf-prediction', 'children'),
-                Output('rf-probability', 'children'),
-                Output('xgb-prediction', 'children'),
-                Output('xgb-probability', 'children'),
-              Input('canvas', 'json_data'))
+    Output('output-figure', 'figure'),
+    Output('rf-prediction', 'children'),
+    Output('rf-probability', 'children'),
+    Output('xgb-prediction', 'children'),
+    Output('xgb-probability', 'children'),
+    Input('canvas', 'json_data'))
 def update_data(string):
     if string:
         data = json.loads(string)
-        print(data['objects'][0]['path']) # explore the contents of the shape file
-        mask = parse_jsonstring(string, shape = (canvas_size, canvas_size))
-        img=(255 * mask).astype(np.uint8) # transform the data
-        print(img) # explore the transformed data
+        print('----------------------------\n')
+        # shape file
+        # explore the contents of the shape file
+        print(data['objects'][0]['path'])
+        print('----------------------------\n')
+        mask = parse_jsonstring(string, shape=(canvas_size, canvas_size))
+        img = (255 * mask).astype(np.uint8) # transform the data
+        print('============================\n')
+        # explore the transformed data
+        print(img)
+        print('============================\n')
         array_to_data_output = array_to_data_url(img)
+        print('*****************************')
         print(array_to_data_output)
+        print('*****************************')
 
         # display as heatmap
-        fig = px.imshow(array_to_data_output, text_auto=True, color_continuous_scale='Blues')
+        fig = px.imshow(array_to_data_output, text_auto=True,
+                        color_continuous_scale='Purples')
         fig.layout.height = 600
         fig.layout.width = 600
         fig.update(layout_coloraxis_showscale=False)
@@ -197,7 +202,7 @@ def update_data(string):
 
         # convert the user input to the format expected by the model
         some_digit_array = np.reshape(array_to_data_output.values, -1)
-        print('some_digit_array',[some_digit_array])
+        print('some_digit_array', [some_digit_array])
 
         # standardize
         some_digit_scaled = scaler.transform([some_digit_array])
@@ -206,19 +211,18 @@ def update_data(string):
         rf_pred = rf_model.predict(some_digit_scaled)
         rf_prob_array = rf_model.predict_proba(some_digit_scaled)
         rf_prob = max(rf_prob_array[0])
-        rf_prob=round(rf_prob*100,2)
+        rf_prob = round(rf_prob*100,2)
 
         # make a prediction: XG Boost
         xgb_pred = xgb_model.predict(some_digit_scaled)
         xgb_prob_array = xgb_model.predict_proba(some_digit_scaled)
         xgb_prob = max(xgb_prob_array[0])
-        xgb_prob=round(xgb_prob*100,2)
+        xgb_prob = round(xgb_prob*100,2)
 
     else:
         raise PreventUpdate
-
-
-    return   fig,  f'Digit: {rf_pred[0]}', f'Probability: {rf_prob}%', f'Digit: {xgb_pred[0]}', f'Probability: {xgb_prob}%'
+    return fig, f'Digit: {rf_pred[0]}', f'Probability: {rf_prob}%', \
+           f'Digit: {xgb_pred[0]}', f'Probability: {xgb_prob}%'
 
 
 if __name__ == '__main__':
