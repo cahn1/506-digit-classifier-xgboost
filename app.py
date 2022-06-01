@@ -18,13 +18,16 @@ import pickle
 
 
 # Load pkl files
-with open('model_outputs/scaler_updated.pkl', 'rb') as f:
+with open('model_outputs/scaler.pkl', 'rb') as f:
     scaler = pickle.load(f)
 
-with open('model_outputs/rf_model_updated.pkl', 'rb') as f:
+with open('model_outputs/rf_model.pkl', 'rb') as f:
     rf_model = pickle.load(f)
 
-with open('model_outputs/xgb_model_updated.pkl', 'rb') as f:
+# with open('model_outputs/xgb_model_updated.pkl', 'rb') as f:
+#     xgb_model = pickle.load(f)
+
+with open('analysis/optimization/cahn/xgb_model6.pkl', 'rb') as f:
     xgb_model = pickle.load(f)
 
 # Global variables
@@ -40,27 +43,28 @@ templates=['plotly', 'ggplot2', 'seaborn', 'simple_white', 'plotly_white',
            'plotly_dark', 'presentation', 'xgridoff', 'ygridoff', 'gridon', 'none']
 data = []
 layout= go.Layout(
-    xaxis =  {'showgrid': False,
-                'visible': False,
-                'showticklabels':False,
-                'showline':False,
-                'zeroline': False,
-                'mirror':True,
-                'ticks':None,
-                },
-    yaxis =  {'showgrid': False,
-                'visible': False,
-                'showticklabels':False,
-                'showline':False,
-                'zeroline': False,
-                'mirror':True,
-                'ticks':None,
-                },
-    newshape={'line_color':None,
-                'fillcolor':None,
-                # 'opacity':0.8,
-                # 'line':{'width':30}
-                },
+    xaxis={
+        'showgrid': True,
+        'visible': True,
+        'showticklabels': False,
+        'showline': True,
+        'zeroline': False,
+        'mirror': True,
+        'ticks': None},
+    yaxis={
+        'showgrid': True,
+        'visible': True,
+        'showticklabels':False,
+        'showline': True,
+        'zeroline': False,
+        'mirror': True,
+        'ticks': None},
+    newshape={
+        'line_color': None,
+        'fillcolor': None,
+        # 'opacity':0.8,
+        # 'line':{'width':30}
+    },
     template=templates[6],
     font_size=12,
     dragmode='drawopenpath',
@@ -115,8 +119,10 @@ app.title=tabtitle
 # Set up Dash layout
 app.layout = html.Div(children=[
         html.H1('Handwritten Digit Classifier'),
-        html.Div([
 
+        html.Div(id='reset-page', key='page', children=[
+
+        html.Div([
             html.Div([
                 html.H3('Draw & Submit'),
                 html.Br(),
@@ -124,19 +130,24 @@ app.layout = html.Div(children=[
                 html.Br(),
                 DashCanvas(
                     id='canvas',
-                    lineWidth=10,
+                    lineWidth=5,
                     lineColor='rgba(255, 0, 0, 0.5)',
                     width=canvas_size,
                     height=canvas_size,
-                    hide_buttons=["zoom", "pan", "line", "pencil", "rectangle", "undo", "select"],
+                    hide_buttons=["zoom", "pan", "line", "pencil",
+                                  "rectangle", "undo", "select"],
                     goButtonTitle='Submit',
                 ),
-            ], style={"padding-left": "20px", "align":"left"}, className="three columns"),
+                html.A(html.Button('Reset'), href='/'),
+            ], style={"padding-left": "20px", "align": "left"},
+                className="three columns"),
 
             html.Div([
-                html.H3('Image converted to Dataframe', style={"padding-left": "65px", "align":"left"}),
+                html.H3('Image converted to Dataframe', style={
+                    "padding-left": "65px", "align": "left"}),
                 dcc.Graph(id='output-figure', figure=blank_fig,
-                style= {'width': '100%', 'height': '100%', "padding-left": "1px", "align":"left"}
+                style={'width': '100%', 'height': '100%', "padding-left":
+                    "1px", "align": "left"}
                 ),
             ], style={"padding-left": "0px", "align":"left"},
                 className='six columns'),
@@ -152,12 +163,29 @@ app.layout = html.Div(children=[
                 html.H6(id='xgb-prediction', children='...'),
                 html.H6(id='xgb-probability', children='waiting for inputs'),
             ], className='three columns'),
-        ], className="twelve columns"),
+        ], className="twelve columns"),]),
+        html.Div(children=[
+            html.Div('Updated'),
+            html.Div(children=[
+                html.Li('Added Reset button'),
+                html.Li('Decreased drawing line width.'),
+                html.Li('Adjusted test_size=0.1'),
+                html.Li('Augmented X_train from 7000 to 315000 using 1up, '
+                        '1down, 1right, 1left'),
+                html.Li('Tried to use GridSearchCV, RandomizedSearchCV but '
+                        'didn\'t complete within 8 hours with augmented data.'),
+                html.Li('Therefore used static params with GridSearchCV.'),
+                html.Li('Accuracy: 0.9851428571428571 '
+                        'Precision: 0.9849865193732226 '
+                        'Recall: 0.9852401268810149 '
+                        'F1 Score: 0.9850931222167884'),
+            ],),
+        ],),
         html.Br(),
         html.A('Code on Github', href=githublink),
         html.Br(),
         html.A("Data Source", href=sourceurl),
-    ], className="twelve columns")
+], className="twelve columns")
 
 
 # callback
@@ -171,6 +199,9 @@ app.layout = html.Div(children=[
 def update_data(string):
     if string:
         data = json.loads(string)
+        print('9999999999999')
+        print(f'{string}')
+        print('9999999999999')
         print('----------------------------\n')
         # shape file
         # explore the contents of the shape file
